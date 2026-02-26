@@ -26,6 +26,27 @@ void main() {
       expect(departure.minutesUntil(now), -8);
     });
 
+    test('초 단위 truncation - 49초 차이는 0분', () {
+      final now = DateTime(2026, 2, 26, 8, 30, 49);
+      final departure = Departure(
+        routeName: '9401',
+        transportType: TransportType.bus,
+        departureTime: DateTime(2026, 2, 26, 8, 31, 0),
+      );
+      // 11초 차이 → 0분 (inMinutes truncate)
+      expect(departure.minutesUntil(now), 0);
+    });
+
+    test('정확히 출발 시각이면 0분', () {
+      final now = DateTime(2026, 2, 26, 8, 42);
+      final departure = Departure(
+        routeName: '9401',
+        transportType: TransportType.bus,
+        departureTime: DateTime(2026, 2, 26, 8, 42),
+      );
+      expect(departure.minutesUntil(now), 0);
+    });
+
     test('displayLabel: 버스는 노선 번호 표시', () {
       final departure = Departure(
         routeName: '9401',

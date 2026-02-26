@@ -12,6 +12,9 @@ class Departure {
     required this.departureTime,
   });
 
+  /// 현재 시각(now)에서 출발까지 남은 분을 반환한다.
+  /// Duration.inMinutes는 초 단위를 truncate한다 (49초 = 0분).
+  /// 이미 출발했으면 음수를 반환한다.
   int minutesUntil(DateTime now) {
     return departureTime.difference(now).inMinutes;
   }
