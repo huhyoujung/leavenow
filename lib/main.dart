@@ -1,3 +1,5 @@
+// macOS 메뉴바 앱 진입점
+// 주의: .env 파일을 프로젝트 루트에 직접 생성해야 함 (git에 포함되지 않음)
 import 'package:flutter/material.dart';
 
 void main() {
