@@ -33,11 +33,13 @@ Future<void> _main() async {
   final prefs = await SharedPreferences.getInstance();
   final settings = SettingsRepository(prefs: prefs);
 
+  // 타이틀바 없는 고정 크기 패널 (트레이 아이콘 바로 아래에 표시)
   const windowOptions = WindowOptions(
-    size: Size(420, 360),
-    minimumSize: Size(420, 360),
-    title: 'LeaveNow 설정',
-    center: true,
+    size: Size(380, 260),
+    minimumSize: Size(380, 260),
+    maximumSize: Size(380, 260),
+    titleBarStyle: TitleBarStyle.hidden,
+    windowButtonVisibility: false,
     skipTaskbar: true,
   );
 
@@ -47,8 +49,7 @@ Future<void> _main() async {
 
   await windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.setPreventClose(true);
-    await windowManager.show();
-    await windowManager.focus();
+    await windowManager.setResizable(false);
   });
 
   runApp(AppRoot(settings: settings));
@@ -75,11 +76,12 @@ class _AppRootState extends State<AppRoot> with WindowListener {
     super.dispose();
   }
 
-  // 창 닫기 버튼 → 닫지 않고 숨기기 (앱 종료 방지)
+  // 닫기 버튼 / 포커스 잃으면 숨기기 (앱 종료 방지, popover 동작)
   @override
-  void onWindowClose() async {
-    await windowManager.hide();
-  }
+  void onWindowClose() async => windowManager.hide();
+
+  @override
+  void onWindowBlur() async => windowManager.hide();
 
   @override
   Widget build(BuildContext context) {
