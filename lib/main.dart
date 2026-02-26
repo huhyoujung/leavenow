@@ -41,14 +41,14 @@ Future<void> _main() async {
     skipTaskbar: true,
   );
 
-  // tray 아이콘을 runApp() 전에 먼저 설정 → NSStatusItem으로 NSRunLoop 유지
-  // (설정 없이 runApp()만 하면 VSYNC 없이 앱이 즉시 종료됨)
-  await trayManager.setIcon('assets/tray_icon.png');
+  // tray 타이틀을 runApp() 전에 먼저 설정 → NSStatusItem으로 NSRunLoop 유지
+  // setIcon()은 Flutter 엔진 시작 후 MenuBarApp._init()에서 처리
   await trayManager.setTitle('🚌');
 
   await windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.setPreventClose(true);
-    // 창 숨기기는 AppRoot.initState에서 처리
+    await windowManager.show();
+    await windowManager.focus();
   });
 
   runApp(AppRoot(settings: settings));

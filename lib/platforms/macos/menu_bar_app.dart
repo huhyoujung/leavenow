@@ -32,8 +32,16 @@ class _MenuBarAppState extends State<MenuBarApp> with TrayListener {
   }
 
   Future<void> _init() async {
-    // tray 아이콘은 main()에서 이미 설정됨 - 여기선 타이틀만 갱신
+    // Flutter 엔진 시작 후 아이콘 설정 (에셋 시스템 준비 완료)
+    try {
+      await trayManager.setIcon('assets/tray_icon.png', isTemplate: true);
+    } catch (e) {
+      // ignore: avoid_print
+      print('[LEAVENOW] setIcon failed: $e');
+    }
     await trayManager.setTitle('🚌 ...');
+    // 창은 tray 아이콘이 생긴 후 숨긴다 (NSStatusItem이 NSRunLoop 유지)
+    await windowManager.hide();
     await _initController();
   }
 
@@ -181,6 +189,28 @@ class _MenuBarAppState extends State<MenuBarApp> with TrayListener {
     _refreshTimer = Timer(const Duration(minutes: 2), _refresh);
   }
 
+  Future<void> _showSettingsWindow() async {
+    // 트레이 아이콘 위치를 기준으로 창을 바로 아래에 위치
+    final iconBounds = await trayManager.getBounds();
+    if (iconBounds != null) {
+      final windowSize = await windowManager.getSize();
+      // 아이콘 중앙 기준으로 창 X 위치 계산, 화면 오른쪽 밖으로 나가지 않도록 클램프
+      final x = (iconBounds.left + iconBounds.width / 2 - windowSize.width / 2)
+          .clamp(0.0, 99999.0);
+      final y = iconBounds.bottom + 4; // 아이콘 바로 아래 4px 여백
+      await windowManager.setPosition(Offset(x, y));
+    }
+    await windowManager.show();
+    await windowManager.focus();
+  }
+
+  // 좌클릭 / 우클릭 모두 컨텍스트 메뉴 표시
+  @override
+  void onTrayIconMouseUp() => trayManager.popUpContextMenu();
+
+  @override
+  void onTrayIconRightMouseDown() => trayManager.popUpContextMenu();
+
   @override
   void onTrayMenuItemClick(MenuItem menuItem) {
     switch (menuItem.key) {
@@ -191,8 +221,7 @@ class _MenuBarAppState extends State<MenuBarApp> with TrayListener {
       case 'refresh':
         _refresh();
       case 'settings':
-        windowManager.show();
-        windowManager.focus();
+        _showSettingsWindow();
     }
   }
 
