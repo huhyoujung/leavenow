@@ -51,4 +51,37 @@ void main() {
     final result = await service.geocode('존재하지않는주소abc');
     expect(result, isNull);
   });
+
+  test('네트워크 오류 시 GeocodingException 발생', () async {
+    when(() => mockDio.get(
+          any(),
+          queryParameters: any(named: 'queryParameters'),
+          options: any(named: 'options'),
+        )).thenThrow(DioException(
+          requestOptions: RequestOptions(path: ''),
+          message: 'Connection refused',
+        ));
+
+    expect(
+      () => service.geocode('서울시 강남구'),
+      throwsA(isA<GeocodingException>()),
+    );
+  });
+
+  test('응답에 addresses 필드 없으면 GeocodingException 발생', () async {
+    when(() => mockDio.get(
+          any(),
+          queryParameters: any(named: 'queryParameters'),
+          options: any(named: 'options'),
+        )).thenAnswer((_) async => Response(
+          data: {'status': 'OK'},  // addresses 없음
+          statusCode: 200,
+          requestOptions: RequestOptions(path: ''),
+        ));
+
+    expect(
+      () => service.geocode('서울시 강남구'),
+      throwsA(isA<GeocodingException>()),
+    );
+  });
 }
