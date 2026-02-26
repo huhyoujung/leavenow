@@ -32,7 +32,7 @@ class _MenuBarAppState extends State<MenuBarApp> with TrayListener {
   }
 
   Future<void> _init() async {
-    await trayManager.setIcon('assets/tray_icon.png');
+    // tray 아이콘은 main()에서 이미 설정됨 - 여기선 타이틀만 갱신
     await trayManager.setTitle('🚌 ...');
     await _initController();
   }
