@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:dio/dio.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:window_manager/window_manager.dart';
 import '../../core/app_controller.dart';
 import '../../core/repositories/settings_repository.dart';
 import '../../core/services/naver_geocoding_service.dart';
@@ -190,8 +191,8 @@ class _MenuBarAppState extends State<MenuBarApp> with TrayListener {
       case 'refresh':
         _refresh();
       case 'settings':
-        // Task 9에서 구현
-        break;
+        windowManager.show();
+        windowManager.focus();
     }
   }
 
