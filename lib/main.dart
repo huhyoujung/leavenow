@@ -50,6 +50,7 @@ Future<void> _main() async {
   await windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.setPreventClose(true);
     await windowManager.setResizable(false);
+    await windowManager.setAsFrameless();  // 완전히 프레임 없는 창
   });
 
   runApp(AppRoot(settings: settings));
@@ -76,12 +77,9 @@ class _AppRootState extends State<AppRoot> with WindowListener {
     super.dispose();
   }
 
-  // 닫기 버튼 / 포커스 잃으면 숨기기 (앱 종료 방지, popover 동작)
+  // 닫기 버튼 → 숨기기 (앱 종료 방지)
   @override
   void onWindowClose() async => windowManager.hide();
-
-  @override
-  void onWindowBlur() async => windowManager.hide();
 
   @override
   Widget build(BuildContext context) {
