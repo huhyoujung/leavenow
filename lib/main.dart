@@ -1,11 +1,8 @@
 // macOS 메뉴바 앱 진입점
-// 주의: config.env 파일을 프로젝트 루트에 직접 생성해야 함 (git에 포함되지 않음)
 import 'dart:async';
 import 'dart:isolate';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 import 'core/repositories/settings_repository.dart';
 import 'platforms/macos/menu_bar_app.dart';
@@ -27,25 +24,20 @@ void main() {
 Future<void> _main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await dotenv.load(fileName: 'config.env');
   await windowManager.ensureInitialized();
 
   final prefs = await SharedPreferences.getInstance();
   final settings = SettingsRepository(prefs: prefs);
 
-  // 타이틀바 없는 고정 크기 패널 (트레이 아이콘 바로 아래에 표시)
   const windowOptions = WindowOptions(
-    size: Size(380, 260),
-    minimumSize: Size(380, 260),
-    maximumSize: Size(380, 260),
+    size: Size(380, 340),
+    minimumSize: Size(380, 280),
     titleBarStyle: TitleBarStyle.hidden,
     windowButtonVisibility: false,
     skipTaskbar: true,
   );
 
-  // tray 타이틀을 runApp() 전에 먼저 설정 → NSStatusItem으로 NSRunLoop 유지
-  // setIcon()은 Flutter 엔진 시작 후 MenuBarApp._init()에서 처리
-  await trayManager.setTitle('🚌');
+  // NSStatusItem은 AppDelegate에서 네이티브로 생성 (tray_manager 미사용)
 
   await windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.setPreventClose(true);
@@ -65,6 +57,8 @@ class AppRoot extends StatefulWidget {
 }
 
 class _AppRootState extends State<AppRoot> with WindowListener {
+  int _menuBarKey = 0;
+
   @override
   void initState() {
     super.initState();
@@ -86,18 +80,66 @@ class _AppRootState extends State<AppRoot> with WindowListener {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF1C1C1E),
+          brightness: Brightness.light,
+        ),
         useMaterial3: true,
+        fontFamily: '.AppleSystemUIFont',
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFFF2F2F7),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Color(0xFF007AFF), width: 1.5),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Color(0xFFFF3B30), width: 1.5),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Color(0xFFFF3B30), width: 1.5),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          isDense: true,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF007AFF),
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            textStyle: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.3,
+            ),
+          ),
+        ),
       ),
       home: Scaffold(
+        backgroundColor: Colors.transparent,
         body: Stack(
           children: [
             // 메뉴바 앱 (SizedBox.shrink — UI 없음, tray 로직만)
-            MenuBarApp(settings: widget.settings),
+            // key가 바뀌면 재생성 → 설정 저장 후 자동 새로고침
+            MenuBarApp(key: ValueKey(_menuBarKey), settings: widget.settings),
             // 설정 창 UI
             SettingsWindow(
               settings: widget.settings,
-              onSaved: () {},
+              onSaved: () => setState(() => _menuBarKey++),
             ),
           ],
         ),

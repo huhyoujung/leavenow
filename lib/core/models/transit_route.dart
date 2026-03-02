@@ -1,13 +1,21 @@
-// 하나의 대중교통 경로 (출발편 목록 포함)
+// 하나의 대중교통 경로 (탑승 정류장 + 실시간 출발편 목록)
 import 'departure.dart';
 
 class TransitRoute {
   final String id;
-  final List<Departure> departures;
+  final int? stationId;
+  final String? stationName;
+  final String? routeName;
+  final TransportType? transportType;
+  List<Departure> departures;
 
-  const TransitRoute({
+  TransitRoute({
     required this.id,
-    required this.departures,
+    this.stationId,
+    this.stationName,
+    this.routeName,
+    this.transportType,
+    this.departures = const [],
   });
 
   List<Departure> upcomingDepartures(DateTime now, {int limit = 3}) {

@@ -30,8 +30,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  tray_manager: ^0.2.3
-  geolocator: ^13.0.0
   dio: ^5.7.0
   shared_preferences: ^2.3.0
   flutter_dotenv: ^5.2.1
@@ -55,4 +53,3 @@ flutter:
   uses-material-design: true
   assets:
     - config.env
-    - assets/tray_icon.png

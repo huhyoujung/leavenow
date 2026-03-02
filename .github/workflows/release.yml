@@ -1,0 +1,32 @@
+name: Build & Release macOS
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - run: flutter config --enable-macos-desktop
+      - run: flutter pub get
+      - run: flutter build macos --release
+
+      - name: Create DMG
+        run: |
+          hdiutil create -volname "LeaveNow" \
+            -srcfolder build/macos/Build/Products/Release/leavenow.app \
+            -ov -format UDZO \
+            LeaveNow.dmg
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: LeaveNow.dmg

@@ -1,50 +1,32 @@
-// 앱 전체 상태 관리 - 시나리오, 경로 목록, 대표 루트
-import 'models/transit_route.dart';
-import 'services/naver_geocoding_service.dart';
-import 'services/odsay_transit_service.dart';
+// 앱 전체 상태 관리 - 정류장별 실시간 버스 도착정보
+import 'models/departure.dart';
+import 'services/seoul_bus_service.dart';
 import 'services/scenario_service.dart';
 
 class AppController {
-  final OdsayTransitService transitService;
-  final NaverGeocodingService geocodingService;
+  final SeoulBusService busService;
 
   Scenario scenario;
-  final String homeAddress;
-  final String workAddress;
-  String? preferredRouteId;
+  final String homeArsId;
+  final String workArsId;
 
-  List<TransitRoute> routes = [];
+  List<Departure> departures = [];
 
   AppController({
-    required this.transitService,
-    required this.geocodingService,
+    required this.busService,
     required this.scenario,
-    required this.homeAddress,
-    required this.workAddress,
-    required this.preferredRouteId,
+    required this.homeArsId,
+    required this.workArsId,
   });
 
-  TransitRoute? get preferredRoute {
-    if (routes.isEmpty) return null;
-    return routes.firstWhere(
-      (r) => r.id == preferredRouteId,
-      orElse: () => routes.first,
-    );
-  }
+  String get currentArsId =>
+      scenario == Scenario.toWork ? homeArsId : workArsId;
 
-  Future<void> loadRoutes() async {
-    final origin = scenario == Scenario.toWork ? homeAddress : workAddress;
-    final destination = scenario == Scenario.toWork ? workAddress : homeAddress;
-
-    final originCoord = await geocodingService.geocode(origin);
-    final destCoord = await geocodingService.geocode(destination);
-
-    if (originCoord == null || destCoord == null) return;
-
-    routes = await transitService.fetchRoutes(
-      origin: originCoord,
-      destination: destCoord,
-    );
+  /// 실시간 도착정보를 조회한다.
+  Future<void> refreshArrivals() async {
+    final arsId = currentArsId;
+    if (arsId.isEmpty) return;
+    departures = await busService.fetchArrivals(arsId);
   }
 
   void toggleScenario() {
