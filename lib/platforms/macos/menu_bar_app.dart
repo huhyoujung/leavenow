@@ -72,6 +72,8 @@ class _MenuBarAppState extends State<MenuBarApp> {
       scenario: scenario ?? Scenario.toWork,
       homeArsId: widget.settings.homeArsId ?? '',
       workArsId: widget.settings.workArsId ?? '',
+      homeRoutes: widget.settings.homeRoutes,
+      workRoutes: widget.settings.workRoutes,
     );
     await _refresh();
   }
@@ -86,7 +88,7 @@ class _MenuBarAppState extends State<MenuBarApp> {
     try {
       await _controller?.refreshArrivals();
     } catch (e) {
-      debugPrint('[LEAVENOW] refreshArrivals ERROR: $e');
+      print('[LEAVENOW] refreshArrivals ERROR: $e');
       await _setTitle('⚠️');
       return;
     }

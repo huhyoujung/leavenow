@@ -30,8 +30,8 @@ Future<void> _main() async {
   final settings = SettingsRepository(prefs: prefs);
 
   const windowOptions = WindowOptions(
-    size: Size(380, 340),
-    minimumSize: Size(380, 280),
+    size: Size(380, 480),
+    minimumSize: Size(380, 400),
     titleBarStyle: TitleBarStyle.hidden,
     windowButtonVisibility: false,
     skipTaskbar: true,

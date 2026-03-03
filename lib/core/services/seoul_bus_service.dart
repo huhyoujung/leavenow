@@ -1,4 +1,5 @@
 // 서울시 버스도착정보 조회 (m.bus.go.kr, 키 불필요)
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import '../models/departure.dart';
 
@@ -13,13 +14,24 @@ class SeoulBusService {
   /// arsId(정류소 고유번호)로 실시간 버스 도착정보를 조회한다.
   Future<List<Departure>> fetchArrivals(String arsId) async {
     try {
+      print('[LEAVENOW] fetchArrivals arsId=$arsId');
       final response = await dio.get(
         _baseUrl,
         queryParameters: {'arsId': arsId},
       );
+      print('[LEAVENOW] response status=${response.statusCode}');
 
-      final data = response.data;
-      if (data is! Map) return [];
+      // m.bus.go.kr은 Content-Type: application/x-json을 반환하므로
+      // Dio가 자동 파싱하지 못할 수 있다. String이면 수동 디코딩.
+      var data = response.data;
+      if (data is String) {
+        print('[LEAVENOW] response.data is String, decoding JSON manually');
+        data = jsonDecode(data);
+      }
+      if (data is! Map) {
+        print('[LEAVENOW] unexpected data type: ${data.runtimeType}');
+        return [];
+      }
 
       final items = data['resultList'];
       if (items is! List) return [];
@@ -45,9 +57,11 @@ class SeoulBusService {
       }
 
       departures.sort((a, b) => a.departureTime.compareTo(b.departureTime));
+      print('[LEAVENOW] ${departures.length}개 도착정보 파싱됨');
       return departures;
-    } catch (_) {
-      return [];
+    } catch (e, stack) {
+      print('[LEAVENOW] fetchArrivals ERROR: $e\n$stack');
+      rethrow;
     }
   }
 

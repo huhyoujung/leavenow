@@ -20,6 +20,8 @@ class SettingsWindow extends StatefulWidget {
 class _SettingsWindowState extends State<SettingsWindow> {
   late TextEditingController _homeCtrl;
   late TextEditingController _workCtrl;
+  late TextEditingController _homeRoutesCtrl;
+  late TextEditingController _workRoutesCtrl;
 
   bool _saving = false;
   String? _homeError;
@@ -30,6 +32,8 @@ class _SettingsWindowState extends State<SettingsWindow> {
     super.initState();
     _homeCtrl = TextEditingController(text: widget.settings.homeArsId ?? '');
     _workCtrl = TextEditingController(text: widget.settings.workArsId ?? '');
+    _homeRoutesCtrl = TextEditingController(text: widget.settings.homeRoutesRaw);
+    _workRoutesCtrl = TextEditingController(text: widget.settings.workRoutesRaw);
   }
 
   @override
@@ -59,12 +63,13 @@ class _SettingsWindowState extends State<SettingsWindow> {
                 children: [
                   _buildTitleBar(),
                   const Divider(height: 1, thickness: 1, color: Color(0xFFE0E0E0)),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
                         const Text(
                           '정류장 번호(arsId)를 입력하세요',
                           style: TextStyle(
@@ -84,24 +89,41 @@ class _SettingsWindowState extends State<SettingsWindow> {
                         ),
                         const SizedBox(height: 14),
                         _buildField(
-                          label: '회사로 가는 버스 타는 집 근처 정류장',
+                          label: '출근 — 집 근처 정류장 번호',
                           icon: Icons.business_rounded,
                           controller: _homeCtrl,
                           hintText: '14004',
                           errorText: _homeError,
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 8),
                         _buildField(
-                          label: '집으로 가는 버스 타는 회사 근처 정류장',
+                          label: '출근 — 탈 버스 노선 (쉼표로 구분)',
+                          icon: Icons.directions_bus_rounded,
+                          controller: _homeRoutesCtrl,
+                          hintText: '343, 4412',
+                          errorText: null,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildField(
+                          label: '퇴근 — 회사 근처 정류장 번호',
                           icon: Icons.home_rounded,
                           controller: _workCtrl,
                           hintText: '14004',
                           errorText: _workError,
                         ),
+                        const SizedBox(height: 8),
+                        _buildField(
+                          label: '퇴근 — 탈 버스 노선 (쉼표로 구분)',
+                          icon: Icons.directions_bus_rounded,
+                          controller: _workRoutesCtrl,
+                          hintText: '343, 4412',
+                          errorText: null,
+                        ),
                         const SizedBox(height: 20),
                         _buildSaveButton(),
                       ],
                     ),
+                  ),
                   ),
                 ],
               ),
@@ -241,6 +263,8 @@ class _SettingsWindowState extends State<SettingsWindow> {
 
     await widget.settings.saveHomeArsId(home);
     await widget.settings.saveWorkArsId(work);
+    await widget.settings.saveHomeRoutes(_homeRoutesCtrl.text.trim());
+    await widget.settings.saveWorkRoutes(_workRoutesCtrl.text.trim());
 
     if (!mounted) return;
     setState(() => _saving = false);
@@ -253,6 +277,8 @@ class _SettingsWindowState extends State<SettingsWindow> {
   void dispose() {
     _homeCtrl.dispose();
     _workCtrl.dispose();
+    _homeRoutesCtrl.dispose();
+    _workRoutesCtrl.dispose();
     super.dispose();
   }
 }
