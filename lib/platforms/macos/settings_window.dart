@@ -1,6 +1,7 @@
 // 정류장 번호 설정 화면 (macOS 별도 창)
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 import '../../core/repositories/settings_repository.dart';
 import '../../core/services/seoul_bus_service.dart';
@@ -87,8 +88,7 @@ class _SettingsWindowState extends State<SettingsWindow> {
                         ),
                         const SizedBox(height: 4),
                         const Text(
-                          '서울: 정류장 표지판 5자리 번호 (예: 14004)\n'
-                          '경기: m.gbis.go.kr 정류장 ID (예: 228000353)',
+                          '서울: 정류장 표지판의 5자리 번호 · 경기: m.gbis.go.kr에서 정류장 검색 후 URL의 숫자',
                           style: TextStyle(
                             fontSize: 11,
                             color: Color(0xFFAEAEB2),
@@ -96,14 +96,17 @@ class _SettingsWindowState extends State<SettingsWindow> {
                           ),
                         ),
                         const SizedBox(height: 14),
-                        _buildStationTypeToggle(
-                          label: '출근 — 지역',
-                          value: _homeStationType,
-                          onChanged: (t) => setState(() => _homeStationType = t),
+                        const Text(
+                          '출근',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1C1C1E),
+                          ),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 10),
                         _buildField(
-                          label: '출근 — 집 근처 정류장 번호',
+                          label: '집 근처 정류장 번호',
                           icon: Icons.business_rounded,
                           controller: _homeCtrl,
                           hintText: _homeStationType == StationType.gyeonggi
@@ -111,25 +114,36 @@ class _SettingsWindowState extends State<SettingsWindow> {
                               : '14004',
                           errorText: _homeError,
                           isNumericOnly: _homeStationType == StationType.seoul,
+                          stationType: _homeStationType,
+                          onStationTypeChanged: (t) =>
+                              setState(() => _homeStationType = t),
+                          searchUrl: _homeStationType == StationType.gyeonggi
+                              ? 'https://m.gbis.go.kr/search'
+                              : 'https://map.naver.com/p/search/버스정류장',
                         ),
                         const SizedBox(height: 8),
                         _buildField(
-                          label: '출근 — 탈 버스 노선 (쉼표로 구분)',
+                          label: '탈 버스 노선 (쉼표로 구분)',
                           icon: Icons.directions_bus_rounded,
                           controller: _homeRoutesCtrl,
                           hintText: '343, 4412',
                           errorText: null,
                           isNumericOnly: false,
                         ),
+                        const SizedBox(height: 10),
+                        const Divider(height: 1, thickness: 1, color: Color(0xFFE5E5EA)),
                         const SizedBox(height: 16),
-                        _buildStationTypeToggle(
-                          label: '퇴근 — 지역',
-                          value: _workStationType,
-                          onChanged: (t) => setState(() => _workStationType = t),
+                        const Text(
+                          '퇴근',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1C1C1E),
+                          ),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 10),
                         _buildField(
-                          label: '퇴근 — 회사 근처 정류장 번호',
+                          label: '회사 근처 정류장 번호',
                           icon: Icons.home_rounded,
                           controller: _workCtrl,
                           hintText: _workStationType == StationType.gyeonggi
@@ -137,10 +151,16 @@ class _SettingsWindowState extends State<SettingsWindow> {
                               : '14004',
                           errorText: _workError,
                           isNumericOnly: _workStationType == StationType.seoul,
+                          stationType: _workStationType,
+                          onStationTypeChanged: (t) =>
+                              setState(() => _workStationType = t),
+                          searchUrl: _workStationType == StationType.gyeonggi
+                              ? 'https://m.gbis.go.kr/search'
+                              : 'https://map.naver.com/p/search/버스정류장',
                         ),
                         const SizedBox(height: 8),
                         _buildField(
-                          label: '퇴근 — 탈 버스 노선 (쉼표로 구분)',
+                          label: '탈 버스 노선 (쉼표로 구분)',
                           icon: Icons.directions_bus_rounded,
                           controller: _workRoutesCtrl,
                           hintText: '343, 4412',
@@ -200,35 +220,6 @@ class _SettingsWindowState extends State<SettingsWindow> {
     );
   }
 
-  Widget _buildStationTypeToggle({
-    required String label,
-    required StationType value,
-    required ValueChanged<StationType> onChanged,
-  }) {
-    return Row(
-      children: [
-        Icon(Icons.location_on_outlined, size: 14, color: const Color(0xFF8E8E93)),
-        const SizedBox(width: 5),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF8E8E93),
-            letterSpacing: 0.2,
-          ),
-        ),
-        const SizedBox(width: 10),
-        _SegmentButton(
-          options: const ['서울', '경기'],
-          selectedIndex: value == StationType.seoul ? 0 : 1,
-          onChanged: (i) =>
-              onChanged(i == 0 ? StationType.seoul : StationType.gyeonggi),
-        ),
-      ],
-    );
-  }
-
   Widget _buildField({
     required String label,
     required IconData icon,
@@ -236,6 +227,9 @@ class _SettingsWindowState extends State<SettingsWindow> {
     required String hintText,
     required String? errorText,
     bool isNumericOnly = true,
+    StationType? stationType,
+    ValueChanged<StationType>? onStationTypeChanged,
+    String? searchUrl,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -254,6 +248,30 @@ class _SettingsWindowState extends State<SettingsWindow> {
                 letterSpacing: 0.2,
               ),
             ),
+            if (searchUrl != null) ...[  
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: () => launchUrl(Uri.parse(searchUrl)),
+                child: const Text(
+                  '검색',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF007AFF),
+                    decoration: TextDecoration.underline,
+                    decorationColor: Color(0xFF007AFF),
+                  ),
+                ),
+              ),
+            ],
+            if (stationType != null && onStationTypeChanged != null) ...[  
+              const Spacer(),
+              _SegmentButton(
+                options: const ['서울', '경기'],
+                selectedIndex: stationType == StationType.seoul ? 0 : 1,
+                onChanged: (i) => onStationTypeChanged(
+                    i == 0 ? StationType.seoul : StationType.gyeonggi),
+              ),
+            ],
           ],
         ),
         const SizedBox(height: 6),
