@@ -50,3 +50,6 @@ config.env
 
 # 코드 생성 파일
 *.g.dart
+
+# 개인 문서
+docs/
