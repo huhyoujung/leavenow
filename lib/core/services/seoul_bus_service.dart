@@ -65,6 +65,42 @@ class SeoulBusService {
     }
   }
 
+  /// arsId 정류장에 routes 노선이 있는지 검증한다.
+  /// 반환값: null이면 정상, 문자열이면 경고 메시지.
+  Future<String?> validateStation(String arsId, List<String> routes) async {
+    try {
+      final response = await dio.get(
+        _baseUrl,
+        queryParameters: {'arsId': arsId},
+      );
+      var data = response.data;
+      if (data is String) data = jsonDecode(data);
+      if (data is! Map) return '정류장 정보를 불러올 수 없습니다 (arsId: $arsId)';
+
+      final items = data['resultList'];
+      if (items is! List || items.isEmpty) {
+        return '정류장을 찾을 수 없습니다.\n번호를 다시 확인해주세요 (입력값: $arsId)';
+      }
+
+      if (routes.isNotEmpty) {
+        final routeNames =
+            items.whereType<Map>().map((e) => e['rtNm']?.toString() ?? '').toList();
+        final hasMatch = routeNames.any((name) =>
+            routes.any((r) => name.toLowerCase().contains(r.toLowerCase())));
+        if (!hasMatch) {
+          final available = routeNames.take(5).join(', ');
+          return '정류장(arsId: $arsId)에 해당 노선이 없습니다.\n'
+              '입력한 노선: ${routes.join(', ')}\n'
+              '이 정류장의 노선: $available${routeNames.length > 5 ? " 외 ${routeNames.length - 5}개" : ""}';
+        }
+      }
+
+      return null;
+    } catch (e) {
+      return '정류장 확인 중 오류가 발생했습니다: $e';
+    }
+  }
+
   /// 도착 메시지를 초 단위로 파싱한다.
   /// "3분12초후[3번째 전]" → 192, "곧 도착" → 0, "운행종료" → null
   int? _parseArrivalMsg(String msg) {

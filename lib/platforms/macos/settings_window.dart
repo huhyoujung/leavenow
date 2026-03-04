@@ -1,7 +1,9 @@
 // 정류장 번호 설정 화면 (macOS 별도 창)
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:window_manager/window_manager.dart';
 import '../../core/repositories/settings_repository.dart';
+import '../../core/services/seoul_bus_service.dart';
 
 class SettingsWindow extends StatefulWidget {
   final SettingsRepository settings;
@@ -261,6 +263,43 @@ class _SettingsWindowState extends State<SettingsWindow> {
 
     setState(() => _saving = true);
 
+    // 저장 전 정류장 & 노선 검증
+    final busService = SeoulBusService(dio: Dio());
+    final homeRoutes = _parseRouteInput(_homeRoutesCtrl.text);
+    final workRoutes = _parseRouteInput(_workRoutesCtrl.text);
+
+    final homeWarn = await busService.validateStation(home, homeRoutes);
+    final workWarn = await busService.validateStation(work, workRoutes);
+
+    if (!mounted) return;
+
+    if (homeWarn != null || workWarn != null) {
+      setState(() => _saving = false);
+      final message = [
+        if (homeWarn != null) '출근 정류장\n$homeWarn',
+        if (workWarn != null) '퇴근 정류장\n$workWarn',
+      ].join('\n\n');
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('⚠️ 정류장 확인 필요'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('다시 입력'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('그래도 저장'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+      setState(() => _saving = true);
+    }
+
     await widget.settings.saveHomeArsId(home);
     await widget.settings.saveWorkArsId(work);
     await widget.settings.saveHomeRoutes(_homeRoutesCtrl.text.trim());
@@ -271,6 +310,15 @@ class _SettingsWindowState extends State<SettingsWindow> {
 
     widget.onSaved();
     await windowManager.hide();
+  }
+
+  List<String> _parseRouteInput(String raw) {
+    if (raw.trim().isEmpty) return [];
+    return raw
+        .split(RegExp(r'[,\s]+'))
+        .map((r) => r.trim())
+        .where((r) => r.isNotEmpty)
+        .toList();
   }
 
   @override

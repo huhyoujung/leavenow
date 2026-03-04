@@ -1,8 +1,13 @@
 // 출근/퇴근 시나리오 판단: GPS → 시간 → 수동 우선순위
 import 'dart:math';
-import 'naver_geocoding_service.dart';
 
 enum Scenario { toWork, toHome }
+
+class LatLng {
+  final double latitude;
+  final double longitude;
+  const LatLng({required this.latitude, required this.longitude});
+}
 
 class ScenarioService {
   static const _radiusMeters = 500.0;
@@ -18,9 +23,11 @@ class ScenarioService {
     return null;
   }
 
-  /// 시간으로 시나리오 판단. thresholdHour 미만이면 출근, 이상이면 퇴근.
+  /// 시간으로 시나리오 판단.
+  /// 오전 3시 ~ thresholdHour 사이면 출근, 그 외(새벽/저녁)면 퇴근.
   static Scenario detectByTime(DateTime time, {required int thresholdHour}) {
-    return time.hour < thresholdHour ? Scenario.toWork : Scenario.toHome;
+    final h = time.hour;
+    return (h >= 3 && h < thresholdHour) ? Scenario.toWork : Scenario.toHome;
   }
 
   static double _distanceMeters(LatLng a, LatLng b) {
