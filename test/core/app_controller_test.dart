@@ -1,120 +1,146 @@
-// AppController 단위 테스트 - 서비스 통합 및 상태 관리
+// AppController 단위 테스트 - 서울/경기버스 서비스 통합 및 상태 관리
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mocktail/mocktail.dart';
 import 'package:leavenow/core/app_controller.dart';
 import 'package:leavenow/core/models/departure.dart';
-import 'package:leavenow/core/models/transit_route.dart';
-import 'package:leavenow/core/services/naver_geocoding_service.dart';
-import 'package:leavenow/core/services/odsay_transit_service.dart';
+import 'package:leavenow/core/repositories/settings_repository.dart';
 import 'package:leavenow/core/services/scenario_service.dart';
+import 'package:leavenow/core/services/seoul_bus_service.dart';
+import 'package:leavenow/core/services/gbus_service.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:dio/dio.dart';
 
-class MockNaverGeocodingService extends Mock implements NaverGeocodingService {}
-class MockOdsayTransitService extends Mock implements OdsayTransitService {}
+class MockSeoulBusService extends Mock implements SeoulBusService {
+  @override
+  final Dio dio = Dio();
+}
+
+class MockGbusBusService extends Mock implements GbusBusService {
+  @override
+  final Dio dio = Dio();
+}
 
 void main() {
-  late MockNaverGeocodingService mockGeocode;
-  late MockOdsayTransitService mockTransit;
+  late MockSeoulBusService mockSeoul;
+  late MockGbusBusService mockGbus;
 
   setUp(() {
-    mockGeocode = MockNaverGeocodingService();
-    mockTransit = MockOdsayTransitService();
-    registerFallbackValue(const LatLng(latitude: 0, longitude: 0));
+    mockSeoul = MockSeoulBusService();
+    mockGbus = MockGbusBusService();
   });
 
-  AppController makeController({String? preferredRouteId}) => AppController(
-    transitService: mockTransit,
-    geocodingService: mockGeocode,
-    scenario: Scenario.toWork,
-    homeAddress: '판교',
-    workAddress: '강남',
-    preferredRouteId: preferredRouteId,
-  );
+  AppController makeController({
+    StationType homeType = StationType.seoul,
+    StationType workType = StationType.seoul,
+    Scenario scenario = Scenario.toWork,
+    List<String> homeRoutes = const [],
+    List<String> workRoutes = const [],
+  }) =>
+      AppController(
+        seoulBusService: mockSeoul,
+        gbusBusService: mockGbus,
+        scenario: scenario,
+        homeArsId: '14004',
+        workArsId: '16248',
+        homeRoutes: homeRoutes,
+        workRoutes: workRoutes,
+        homeStationType: homeType,
+        workStationType: workType,
+      );
 
-  test('경로 로드 후 routes가 채워짐', () async {
-    when(() => mockGeocode.geocode(any()))
-        .thenAnswer((_) async => const LatLng(latitude: 37.394, longitude: 127.111));
-    when(() => mockTransit.fetchRoutes(
-          origin: any(named: 'origin'),
-          destination: any(named: 'destination'),
-        )).thenAnswer((_) async => [
-          TransitRoute(
-            id: 'route-0',
-            departures: [
-              Departure(
-                routeName: '9401',
-                transportType: TransportType.bus,
-                departureTime: DateTime.now().add(const Duration(minutes: 10)),
-              ),
-            ],
-          ),
-        ]);
+  group('refreshArrivals - 서울 정류장', () {
+    test('toWork 시나리오에서 서울 서비스 호출', () async {
+      final departures = [
+        Departure(
+          routeName: '343',
+          transportType: TransportType.bus,
+          departureTime: DateTime.now().add(const Duration(minutes: 5)),
+        ),
+      ];
+      when(() => mockSeoul.fetchArrivals(any()))
+          .thenAnswer((_) async => departures);
 
-    final controller = makeController();
-    await controller.loadRoutes();
+      final ctrl = makeController(homeType: StationType.seoul);
+      await ctrl.refreshArrivals();
 
-    expect(controller.routes.isNotEmpty, true);
+      verify(() => mockSeoul.fetchArrivals('14004')).called(1);
+      verifyNever(() => mockGbus.fetchArrivals(any()));
+      expect(ctrl.departures.length, 1);
+    });
+
+    test('노선 필터 적용', () async {
+      final departures = [
+        Departure(
+          routeName: '343',
+          transportType: TransportType.bus,
+          departureTime: DateTime.now().add(const Duration(minutes: 5)),
+        ),
+        Departure(
+          routeName: '4412',
+          transportType: TransportType.bus,
+          departureTime: DateTime.now().add(const Duration(minutes: 10)),
+        ),
+      ];
+      when(() => mockSeoul.fetchArrivals(any()))
+          .thenAnswer((_) async => departures);
+
+      final ctrl = makeController(
+        homeType: StationType.seoul,
+        homeRoutes: ['343'],
+      );
+      await ctrl.refreshArrivals();
+
+      expect(ctrl.departures.length, 1);
+      expect(ctrl.departures.first.routeName, '343');
+    });
   });
 
-  test('preferredRoute: preferredRouteId 없으면 첫 번째 경로 반환', () async {
-    when(() => mockGeocode.geocode(any()))
-        .thenAnswer((_) async => const LatLng(latitude: 37.394, longitude: 127.111));
-    when(() => mockTransit.fetchRoutes(
-          origin: any(named: 'origin'),
-          destination: any(named: 'destination'),
-        )).thenAnswer((_) async => [
-          TransitRoute(id: 'route-0', departures: []),
-          TransitRoute(id: 'route-1', departures: []),
-        ]);
+  group('refreshArrivals - 경기 정류장', () {
+    test('toWork 시나리오에서 경기 서비스 호출', () async {
+      final departures = [
+        Departure(
+          routeName: '1150',
+          transportType: TransportType.bus,
+          departureTime: DateTime.now().add(const Duration(minutes: 22)),
+        ),
+      ];
+      when(() => mockGbus.fetchArrivals(any()))
+          .thenAnswer((_) async => departures);
 
-    final controller = makeController();
-    await controller.loadRoutes();
+      final ctrl = makeController(homeType: StationType.gyeonggi);
+      await ctrl.refreshArrivals();
 
-    expect(controller.preferredRoute?.id, 'route-0');
+      verify(() => mockGbus.fetchArrivals('14004')).called(1);
+      verifyNever(() => mockSeoul.fetchArrivals(any()));
+      expect(ctrl.departures.length, 1);
+    });
+
+    test('toHome 시나리오에서 workStationType 사용', () async {
+      when(() => mockGbus.fetchArrivals(any())).thenAnswer((_) async => []);
+      when(() => mockSeoul.fetchArrivals(any())).thenAnswer((_) async => []);
+
+      final ctrl = makeController(
+        homeType: StationType.seoul,
+        workType: StationType.gyeonggi,
+        scenario: Scenario.toHome,
+      );
+      await ctrl.refreshArrivals();
+
+      verify(() => mockGbus.fetchArrivals('16248')).called(1);
+      verifyNever(() => mockSeoul.fetchArrivals(any()));
+    });
   });
 
-  test('preferredRoute: preferredRouteId 있으면 해당 경로 반환', () async {
-    when(() => mockGeocode.geocode(any()))
-        .thenAnswer((_) async => const LatLng(latitude: 37.394, longitude: 127.111));
-    when(() => mockTransit.fetchRoutes(
-          origin: any(named: 'origin'),
-          destination: any(named: 'destination'),
-        )).thenAnswer((_) async => [
-          TransitRoute(id: 'route-0', departures: []),
-          TransitRoute(id: 'route-1', departures: []),
-        ]);
+  group('toggleScenario', () {
+    test('toWork → toHome 전환', () {
+      final ctrl = makeController(scenario: Scenario.toWork);
+      ctrl.toggleScenario();
+      expect(ctrl.scenario, Scenario.toHome);
+    });
 
-    final controller = makeController(preferredRouteId: 'route-1');
-    await controller.loadRoutes();
-
-    expect(controller.preferredRoute?.id, 'route-1');
-  });
-
-  test('toggleScenario: toWork → toHome', () {
-    final controller = makeController();
-    expect(controller.scenario, Scenario.toWork);
-    controller.toggleScenario();
-    expect(controller.scenario, Scenario.toHome);
-  });
-
-  test('toggleScenario: toHome → toWork', () {
-    final controller = AppController(
-      transitService: mockTransit,
-      geocodingService: mockGeocode,
-      scenario: Scenario.toHome,
-      homeAddress: '판교',
-      workAddress: '강남',
-      preferredRouteId: null,
-    );
-    controller.toggleScenario();
-    expect(controller.scenario, Scenario.toWork);
-  });
-
-  test('geocoding 실패 시 routes 비어있음', () async {
-    when(() => mockGeocode.geocode(any())).thenAnswer((_) async => null);
-
-    final controller = makeController();
-    await controller.loadRoutes();
-
-    expect(controller.routes, isEmpty);
+    test('toHome → toWork 전환', () {
+      final ctrl = makeController(scenario: Scenario.toHome);
+      ctrl.toggleScenario();
+      expect(ctrl.scenario, Scenario.toWork);
+    });
   });
 }

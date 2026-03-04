@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:window_manager/window_manager.dart';
 import '../../core/repositories/settings_repository.dart';
 import '../../core/services/seoul_bus_service.dart';
+import '../../core/services/gbus_service.dart';
 
 class SettingsWindow extends StatefulWidget {
   final SettingsRepository settings;
@@ -25,6 +26,9 @@ class _SettingsWindowState extends State<SettingsWindow> {
   late TextEditingController _homeRoutesCtrl;
   late TextEditingController _workRoutesCtrl;
 
+  late StationType _homeStationType;
+  late StationType _workStationType;
+
   bool _saving = false;
   String? _homeError;
   String? _workError;
@@ -36,6 +40,8 @@ class _SettingsWindowState extends State<SettingsWindow> {
     _workCtrl = TextEditingController(text: widget.settings.workArsId ?? '');
     _homeRoutesCtrl = TextEditingController(text: widget.settings.homeRoutesRaw);
     _workRoutesCtrl = TextEditingController(text: widget.settings.workRoutesRaw);
+    _homeStationType = widget.settings.homeStationType;
+    _workStationType = widget.settings.workStationType;
   }
 
   @override
@@ -73,7 +79,7 @@ class _SettingsWindowState extends State<SettingsWindow> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                         const Text(
-                          '정류장 번호(arsId)를 입력하세요',
+                          '버스 정류장 정보를 입력하세요',
                           style: TextStyle(
                             fontSize: 12,
                             color: Color(0xFF8E8E93),
@@ -81,8 +87,8 @@ class _SettingsWindowState extends State<SettingsWindow> {
                         ),
                         const SizedBox(height: 4),
                         const Text(
-                          '버스 정류장 표지판의 5자리 번호 (예: 14004)\n'
-                          '네이버 지도에서 정류장 검색 → 상세정보의 ID로도 확인 가능',
+                          '서울: 정류장 표지판 5자리 번호 (예: 14004)\n'
+                          '경기: m.gbis.go.kr 정류장 ID (예: 228000353)',
                           style: TextStyle(
                             fontSize: 11,
                             color: Color(0xFFAEAEB2),
@@ -90,12 +96,21 @@ class _SettingsWindowState extends State<SettingsWindow> {
                           ),
                         ),
                         const SizedBox(height: 14),
+                        _buildStationTypeToggle(
+                          label: '출근 — 지역',
+                          value: _homeStationType,
+                          onChanged: (t) => setState(() => _homeStationType = t),
+                        ),
+                        const SizedBox(height: 6),
                         _buildField(
                           label: '출근 — 집 근처 정류장 번호',
                           icon: Icons.business_rounded,
                           controller: _homeCtrl,
-                          hintText: '14004',
+                          hintText: _homeStationType == StationType.gyeonggi
+                              ? '228000353'
+                              : '14004',
                           errorText: _homeError,
+                          isNumericOnly: _homeStationType == StationType.seoul,
                         ),
                         const SizedBox(height: 8),
                         _buildField(
@@ -104,14 +119,24 @@ class _SettingsWindowState extends State<SettingsWindow> {
                           controller: _homeRoutesCtrl,
                           hintText: '343, 4412',
                           errorText: null,
+                          isNumericOnly: false,
                         ),
                         const SizedBox(height: 16),
+                        _buildStationTypeToggle(
+                          label: '퇴근 — 지역',
+                          value: _workStationType,
+                          onChanged: (t) => setState(() => _workStationType = t),
+                        ),
+                        const SizedBox(height: 6),
                         _buildField(
                           label: '퇴근 — 회사 근처 정류장 번호',
                           icon: Icons.home_rounded,
                           controller: _workCtrl,
-                          hintText: '14004',
+                          hintText: _workStationType == StationType.gyeonggi
+                              ? '228000353'
+                              : '14004',
                           errorText: _workError,
+                          isNumericOnly: _workStationType == StationType.seoul,
                         ),
                         const SizedBox(height: 8),
                         _buildField(
@@ -120,6 +145,7 @@ class _SettingsWindowState extends State<SettingsWindow> {
                           controller: _workRoutesCtrl,
                           hintText: '343, 4412',
                           errorText: null,
+                          isNumericOnly: false,
                         ),
                         const SizedBox(height: 20),
                         _buildSaveButton(),
@@ -174,12 +200,42 @@ class _SettingsWindowState extends State<SettingsWindow> {
     );
   }
 
+  Widget _buildStationTypeToggle({
+    required String label,
+    required StationType value,
+    required ValueChanged<StationType> onChanged,
+  }) {
+    return Row(
+      children: [
+        Icon(Icons.location_on_outlined, size: 14, color: const Color(0xFF8E8E93)),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF8E8E93),
+            letterSpacing: 0.2,
+          ),
+        ),
+        const SizedBox(width: 10),
+        _SegmentButton(
+          options: const ['서울', '경기'],
+          selectedIndex: value == StationType.seoul ? 0 : 1,
+          onChanged: (i) =>
+              onChanged(i == 0 ? StationType.seoul : StationType.gyeonggi),
+        ),
+      ],
+    );
+  }
+
   Widget _buildField({
     required String label,
     required IconData icon,
     required TextEditingController controller,
     required String hintText,
     required String? errorText,
+    bool isNumericOnly = true,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -208,7 +264,7 @@ class _SettingsWindowState extends State<SettingsWindow> {
             color: Color(0xFF1C1C1E),
             letterSpacing: -0.2,
           ),
-          keyboardType: TextInputType.number,
+          keyboardType: isNumericOnly ? TextInputType.number : TextInputType.text,
           decoration: InputDecoration(
             hintText: hintText,
             hintStyle: const TextStyle(
@@ -264,12 +320,17 @@ class _SettingsWindowState extends State<SettingsWindow> {
     setState(() => _saving = true);
 
     // 저장 전 정류장 & 노선 검증
-    final busService = SeoulBusService(dio: Dio());
+    final seoulService = SeoulBusService(dio: Dio());
+    final gbusService = GbusBusService(dio: Dio());
     final homeRoutes = _parseRouteInput(_homeRoutesCtrl.text);
     final workRoutes = _parseRouteInput(_workRoutesCtrl.text);
 
-    final homeWarn = await busService.validateStation(home, homeRoutes);
-    final workWarn = await busService.validateStation(work, workRoutes);
+    final homeWarn = _homeStationType == StationType.gyeonggi
+        ? await gbusService.validateStation(home, homeRoutes)
+        : await seoulService.validateStation(home, homeRoutes);
+    final workWarn = _workStationType == StationType.gyeonggi
+        ? await gbusService.validateStation(work, workRoutes)
+        : await seoulService.validateStation(work, workRoutes);
 
     if (!mounted) return;
 
@@ -304,6 +365,8 @@ class _SettingsWindowState extends State<SettingsWindow> {
     await widget.settings.saveWorkArsId(work);
     await widget.settings.saveHomeRoutes(_homeRoutesCtrl.text.trim());
     await widget.settings.saveWorkRoutes(_workRoutesCtrl.text.trim());
+    await widget.settings.saveHomeStationType(_homeStationType);
+    await widget.settings.saveWorkStationType(_workStationType);
 
     if (!mounted) return;
     setState(() => _saving = false);
@@ -328,5 +391,66 @@ class _SettingsWindowState extends State<SettingsWindow> {
     _homeRoutesCtrl.dispose();
     _workRoutesCtrl.dispose();
     super.dispose();
+  }
+}
+
+/// 서울 / 경기 선택용 소형 세그먼트 버튼
+class _SegmentButton extends StatelessWidget {
+  final List<String> options;
+  final int selectedIndex;
+  final ValueChanged<int> onChanged;
+
+  const _SegmentButton({
+    required this.options,
+    required this.selectedIndex,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFE5E5EA),
+        borderRadius: BorderRadius.circular(7),
+      ),
+      padding: const EdgeInsets.all(2),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(options.length, (i) {
+          final selected = i == selectedIndex;
+          return GestureDetector(
+            onTap: () => onChanged(i),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+              decoration: BoxDecoration(
+                color: selected ? Colors.white : Colors.transparent,
+                borderRadius: BorderRadius.circular(5),
+                boxShadow: selected
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Text(
+                options[i],
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight:
+                      selected ? FontWeight.w600 : FontWeight.w400,
+                  color: selected
+                      ? const Color(0xFF1C1C1E)
+                      : const Color(0xFF8E8E93),
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
   }
 }

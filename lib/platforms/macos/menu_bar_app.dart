@@ -7,6 +7,7 @@ import 'package:window_manager/window_manager.dart';
 import '../../core/app_controller.dart';
 import '../../core/repositories/settings_repository.dart';
 import '../../core/services/seoul_bus_service.dart';
+import '../../core/services/gbus_service.dart';
 import '../../core/services/scenario_service.dart';
 
 class MenuBarApp extends StatefulWidget {
@@ -68,12 +69,15 @@ class _MenuBarAppState extends State<MenuBarApp> {
           );
 
     _controller = AppController(
-      busService: SeoulBusService(dio: Dio()),
+      seoulBusService: SeoulBusService(dio: Dio()),
+      gbusBusService: GbusBusService(dio: Dio()),
       scenario: scenario ?? Scenario.toWork,
       homeArsId: widget.settings.homeArsId ?? '',
       workArsId: widget.settings.workArsId ?? '',
       homeRoutes: widget.settings.homeRoutes,
       workRoutes: widget.settings.workRoutes,
+      homeStationType: widget.settings.homeStationType,
+      workStationType: widget.settings.workStationType,
     );
     await _refresh();
   }
