@@ -1,17 +1,48 @@
-# leavenow
+# 🚌 붉은 버스
 
-A new Flutter project.
+macOS 메뉴바에서 버스 도착 시간을 바로 확인하는 앱입니다.  
+출근·퇴근 시간대에 맞게 집 근처 / 회사 근처 정류장을 자동으로 전환합니다.
 
-## Getting Started
+## 설치
 
-This project is a starting point for a Flutter application.
+[Releases](https://github.com/huhyoujung/leavenow/releases) 페이지에서 최신 버전을 다운로드하세요.
 
-A few resources to get you started if this is your first Flutter project:
+## 사용법
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+### 1. 정류장 번호 찾기
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+**서울 버스**
+- 정류장 표지판에 적힌 **5자리 숫자** (예: `14004`)
+- 또는 [네이버 지도](https://map.naver.com/p/search/버스정류장)에서 정류장 검색 후 정류소 번호 확인
+
+**경기 버스**
+- [m.gbis.go.kr](https://m.gbis.go.kr/search) 에서 정류장 검색
+- 정류장 클릭 후 URL에 나오는 숫자 (예: `228000353`)
+
+### 2. 설정 입력
+
+메뉴바의 🚌 아이콘을 클릭 → **설정** 을 엽니다.
+
+| 항목 | 설명 |
+|------|------|
+| 출근 - 집 근처 정류장 번호 | 아침에 버스를 타는 정류장 번호 |
+| 출근 - 탈 버스 노선 | 쉼표로 구분 (예: `343, 4412`) |
+| 퇴근 - 회사 근처 정류장 번호 | 저녁에 버스를 타는 정류장 번호 |
+| 퇴근 - 탈 버스 노선 | 쉼표로 구분 (예: `343, 4412`) |
+
+노선을 비워두면 해당 정류장의 모든 버스를 표시합니다.
+
+### 3. 메뉴바 사용
+
+- 설정 저장 후 메뉴바 아이콘에 **다음 버스 도착까지 남은 분** 이 표시됩니다
+- 오전에는 출근 정류장, 오후에는 퇴근 정류장 기준으로 자동 전환됩니다
+- 아이콘 클릭 시 노선별 상세 도착 시간 목록을 확인할 수 있습니다
+
+## 지원 지역
+
+- 서울 버스 (서울시 공공 API)
+- 경기 버스 (m.gbis.go.kr)
+
+## 요구 사항
+
+- macOS 12 이상
