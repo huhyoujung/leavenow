@@ -52,7 +52,8 @@ class _SettingsWindowState extends State<SettingsWindow> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
+          Expanded(
+          child: Container(
             decoration: BoxDecoration(
               color: const Color(0xFFF5F5F7),
               borderRadius: BorderRadius.circular(14),
@@ -68,7 +69,6 @@ class _SettingsWindowState extends State<SettingsWindow> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(14),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
                 children: [
                   _buildTitleBar(),
                   const Divider(height: 1, thickness: 1, color: Color(0xFFE0E0E0)),
@@ -177,7 +177,7 @@ class _SettingsWindowState extends State<SettingsWindow> {
               ),
             ),
           ),
-          const Expanded(child: SizedBox()),
+          ),
         ],
       ),
     );
