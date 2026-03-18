@@ -30,7 +30,7 @@ NSGraphicsContext.current = nsCtx
 // 배경 (빨간색 rounded rect)
 let rect = CGRect(x: 0, y: 0, width: size, height: size)
 let radius = CGFloat(size) * 0.22
-NSColor(red: 0.85, green: 0.13, blue: 0.13, alpha: 1.0).setFill()
+NSColor(red: 0.20, green: 0.47, blue: 0.85, alpha: 1.0).setFill()
 NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius).fill()
 
 // 이모지
