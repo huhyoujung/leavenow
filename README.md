@@ -5,7 +5,13 @@ macOS 메뉴바에서 버스 도착 시간을 바로 확인하는 앱입니다.
 
 ## 설치
 
-[Releases](https://github.com/huhyoujung/leavenow/releases) 페이지에서 `leavenow-vX.X.X.zip`을 다운로드하세요.
+1. [Releases](https://github.com/huhyoujung/leavenow/releases) 페이지에서 `leavenow-vX.X.X.zip`을 다운로드
+2. zip 압축 해제 후 `leavenow.app`을 `/Applications` 폴더로 이동
+3. 앱을 처음 실행할 때 아래와 같은 경고가 뜰 수 있습니다:
+
+> "Apple은 'leavenow'에 악성 코드가 없음을 확인할 수 없습니다."
+
+이 경우 **시스템 설정 → 개인정보 보호 및 보안** 으로 이동하면 하단에 **"leavenow 허용"** 버튼이 나타납니다. 클릭 후 다시 앱을 실행하세요.
 
 ## 사용법
 
