@@ -1,11 +1,11 @@
-# 🚌 붉은 버스
+# 🚌 leavenow
 
 macOS 메뉴바에서 버스 도착 시간을 바로 확인하는 앱입니다.  
 출근·퇴근 시간대에 맞게 집 근처 / 회사 근처 정류장을 자동으로 전환합니다.
 
 ## 설치
 
-[Releases](https://github.com/huhyoujung/leavenow/releases) 페이지에서 최신 버전을 다운로드하세요.
+[Releases](https://github.com/huhyoujung/leavenow/releases) 페이지에서 `leavenow-vX.X.X.zip`을 다운로드하세요.
 
 ## 사용법
 
